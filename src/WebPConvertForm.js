@@ -14,39 +14,7 @@ class WebPConvertForm extends React.Component {
     this.state = {
       inputImage: null
     };
-  }
-
-  componentDidMount() {
-    this.loadWasm();
-  }
-
-  loadWasm() {
-  	const path = process.env.PUBLIC_URL + '/libwebp.wasm';
-  	const importObject = {
-  		env: {
-  		  memoryBase: 0,
-  		  tableBase: 0,
-  		  memory: new WebAssembly.Memory({initial: 256, maximum: 1024}),
-          table: new WebAssembly.Table({initial: 256, element: 'anyfunc'}),
-  		  __assert_fail: function() {
-  			console.log("__assert_fail");
-  		  },
-  		  emscripten_resize_heap: function() {
-  		  	console.log("emscripten_resize_heap");
-  		  },
-  		  emscripten_memcpy_big: function() {
-  		  	console.log("emscripten_memcpy_big");
-  		  },
-  		  setTempRet0: function() {
-  		  	console.log("setTempRet0");
-  		  }
-  		}
-  	};
-  	WebAssembly.instantiateStreaming(fetch(path), importObject)
-  	.then(obj => {
-  	  this.setState({libwebp: obj});
-  	  console.log(obj);
-  	});
+    this.handleConvert = this.handleConvert.bind(this);
   }
 
   handleAccepted(files) {
@@ -55,18 +23,58 @@ class WebPConvertForm extends React.Component {
   	} else if (files.length !== 1) {
       toast.error("Cannot process multiple files.");
   	} else {
-      const reader = new FileReader();
-      reader.onabort = () => console.log('file reading was aborted');
-      reader.onerror = () => console.log('file reading has failed');
-      reader.onload = () => {
-        // Do whatever you want with the file contents
-        const binaryStr = reader.result;
-        console.log(binaryStr);
-      }
       const file = files[0];
-      reader.readAsArrayBuffer(file);
+      // todo validate file : is it a valid image?
+      this.setState({inputImage: file});
       toast.info("File " + file.name + " was successfully read. Click \"Convert\" to get a WebP image.");
   	}
+  }
+
+  handleConvert() {
+  	const url = URL.createObjectURL(this.state.inputImage);
+  	const img = new Image();
+  	img.onload = () => {
+  	  URL.revokeObjectURL(url);
+  	  console.log(url);
+  	  const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+  	  context.drawImage(img, 0, 0);
+  	  const image = context.getImageData(0, 0, img.width, img.height);
+  	  console.log(image);
+      this.setState({inputImage: null});
+  	  toast.info("Converted");
+  	}
+  	img.src = url;
+  }
+
+  encode(image, quality, callback) {
+    window.webp.then(function(Module) {
+      const api = {
+        version: Module.cwrap('version', 'number', []),
+        create_buffer: Module.cwrap('create_buffer', 'number', ['number', 'number']),
+        destroy_buffer: Module.cwrap('destroy_buffer', '', ['number']),
+        encode: Module.cwrap('encode', '', ['number', 'number', 'number', 'number']),
+        get_result_pointer: Module.cwrap('get_result_pointer', 'number', ''),
+        get_result_size: Module.cwrap('get_result_size', 'number', ''),
+        free_result: Module.cwrap('free_result', '', ['number']),
+      };
+
+      const p = api.create_buffer(image.width, image.height);
+      
+      Module.HEAP8.set(image.data, p);
+      
+      api.encode(p, image.width, image.height, quality);
+      
+      const resultPointer = api.get_result_pointer();
+      const resultSize = api.get_result_size();
+      const resultView = new Uint8Array(Module.HEAP8.buffer, resultPointer, resultSize);
+      const result = new Uint8Array(resultView);
+      
+      api.free_result(resultPointer);
+      api.destroy_buffer(p);
+
+      callback(result);
+	});
   }
 
   valuetext(value) {
@@ -130,7 +138,7 @@ class WebPConvertForm extends React.Component {
           />
         </Box>
         <Box {...marginProps}>
-          <Button color="primary" variant="contained" disabled>
+          <Button color="primary" variant="contained" disabled={this.state.inputImage===null} onClick={this.handleConvert}>
             <p>Convert</p>
           </Button>
         </Box>
