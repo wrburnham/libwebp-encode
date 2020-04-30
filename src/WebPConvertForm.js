@@ -18,26 +18,26 @@ class WebPConvertForm extends React.Component {
       quality: this.defaultQuality,
       processing: false
     };
-    this.convertLabel = "Convert";
+    this.convertLabel = 'Convert';
     this.handleConvert = this.handleConvert.bind(this);
     this.handleQualityChange = this.handleQualityChange.bind(this);
   }
 
   handleAccepted(files) {
   	if (files.length === 0) {
-      toast.error("No file specified.");
+      toast.error('No file specified.');
   	} else if (files.length !== 1) {
-      toast.error("Cannot process multiple files.");
+      toast.error('Cannot process multiple files.');
   	} else {
       const file = files[0];
       // todo validate file : is it a valid image?
       this.setState({inputImage: file});
-      toast.info("File " + file.name + " was successfully read. Click \"" + this.convertLabel + "\" to get a WebP image.");
+      toast.info('File ' + file.name + ' was successfully read. Click "' + this.convertLabel + '" to get a WebP image.');
   	}
   }
 
   convertError() {
-  	toast.error("An error occurred and the image could not be converted.");
+  	toast.error('An error occurred and the image could not be converted.');
   	this.resetState();
   }
 
@@ -66,7 +66,7 @@ class WebPConvertForm extends React.Component {
   	  	  try {
             this.canvas.width = img.width;
             this.canvas.height = img.height;
-            const context = this.canvas.getContext("2d");
+            const context = this.canvas.getContext('2d');
             context.drawImage(img, 0, 0);
             const image = context.getImageData(0, 0, img.width, img.height);
             this.encode(
@@ -74,13 +74,13 @@ class WebPConvertForm extends React.Component {
             this.state.quality, 
       	    converted => {
       	      try {
-      	        const convertedUrl = URL.createObjectURL(new Blob([converted], {type: "image/webp"}));
+      	        const convertedUrl = URL.createObjectURL(new Blob([converted], {type: 'image/webp'}));
                 target.src = convertedUrl;
-                const message = "Converted " + this.state.inputImage.name + " with " + this.state.quality + "% quality.";
+                const message = 'Converted ' + this.state.inputImage.name + ' with ' + this.state.quality + '% quality.';
                 toast.info(message);
                 this.resetState();
               } catch (err) {
-              	toast.warn("The converted image may not have been rendered correctly.");
+              	toast.warn('The converted image may not have been rendered correctly.');
               	this.resetState();
               }
       	    });
@@ -179,29 +179,29 @@ class WebPConvertForm extends React.Component {
           </Dropzone>
         </Box>
         <Box {...marginProps}>
-          <Typography id="webp-encode-quality" gutterBottom>
+          <Typography id='webp-encode-quality' gutterBottom>
             Quality (%)
           </Typography>
           <Slider
             onChange={this.handleQualityChange}
             value={this.state.quality}
             getAriaValueText={this.valuetext}
-            aria-labelledby="webp-encode-quality"
+            aria-labelledby='webp-encode-quality'
             step={1}
             min={0}
             max={100}
-            valueLabelDisplay="auto"
+            valueLabelDisplay='auto'
           />
         </Box>
         <Box {...marginProps}>
-          <Button color="primary" variant="contained" disabled={this.state.inputImage===null || this.state.processing === true} onClick={this.handleConvert}>
+          <Button color='primary' variant='contained' disabled={this.state.inputImage===null || this.state.processing === true} onClick={this.handleConvert}>
             <p>{this.convertLabel}</p>
           </Button>
         </Box>
         <Box {...marginProps}>
-          <img ref={(img) => this.convertedImg = img} className="preview"/>
+          <img ref={(img) => this.convertedImg = img} className='preview' alt=''/>
         </Box>
-        <canvas ref={(canvas) => this.canvas = canvas} className="hidden"/>
+        <canvas ref={(canvas) => this.canvas = canvas} className='hidden'/>
       </Container>
     );
   }
