@@ -1,20 +1,25 @@
 import React from 'react';
-import Canvas from './Canvas.js';
 import Dropzone from 'react-dropzone';
 import Container from '@material-ui/core/Container';
 import Slider from '@material-ui/core/Slider';
 import Typography from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
+import './WebPConvertForm.css';
+
 import { toast } from 'react-toastify';
 
 class WebPConvertForm extends React.Component {
   constructor(props) {
     super(props);
+    this.defaultQuality = 80;
     this.state = {
-      inputImage: null
+      inputImage: null,
+      quality: this.defaultQuality
     };
+    this.convertLabel = "Convert";
     this.handleConvert = this.handleConvert.bind(this);
+    this.handleQualityChange = this.handleQualityChange.bind(this);
   }
 
   handleAccepted(files) {
@@ -26,29 +31,66 @@ class WebPConvertForm extends React.Component {
       const file = files[0];
       // todo validate file : is it a valid image?
       this.setState({inputImage: file});
-      toast.info("File " + file.name + " was successfully read. Click \"Convert\" to get a WebP image.");
+      toast.info("File " + file.name + " was successfully read. Click \"" + this.convertLabel + "\" to get a WebP image.");
   	}
+  }
+
+  convertError() {
+  	toast.error("An error occurred and the image could not be converted.");
+  	this.resetState();
+  }
+
+  resetState() {
+  	this.setState({inputImage: null});
+    this.setState({quality: this.defaultQuality});
   }
 
   handleConvert() {
   	const url = URL.createObjectURL(this.state.inputImage);
   	const img = new Image();
-  	img.onload = () => {
-  	  URL.revokeObjectURL(url);
-  	  console.log(url);
-  	  const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-  	  context.drawImage(img, 0, 0);
-  	  const image = context.getImageData(0, 0, img.width, img.height);
-  	  console.log(image);
-      this.setState({inputImage: null});
-  	  toast.info("Converted");
-  	}
-  	img.src = url;
+  	try {
+  	  img.onload = () => {
+  	    URL.revokeObjectURL(url);
+  	  	if (img.width + img.height === 0) {
+  	  	  this.convertError();
+  	  	} else {
+  	  	  const target = this.convertedImg;
+  	  	  try {
+            this.canvas.width = img.width;
+            this.canvas.height = img.height;
+            const context = this.canvas.getContext("2d");
+            context.drawImage(img, 0, 0);
+            const image = context.getImageData(0, 0, img.width, img.height);
+            this.encode(
+            image, 
+            this.state.quality, 
+      	    converted => {
+              console.log(converted);
+              console.log(this.state.quality);
+              const convertedUrl = URL.createObjectURL(new Blob([converted], {type: "image/webp"}));
+              target.src = convertedUrl;
+              this.resetState();
+      	    });
+          } catch (err) {
+          	this.convertError();
+          }
+  	  	}
+      };
+      img.onerror = () => {
+        this.convertError();
+      };
+  	  img.src = url;
+  	} catch (err) {
+  	  this.convertError();
+    }
   }
 
-  encode(image, quality, callback) {
-    window.webp.then(function(Module) {
+  handleQualityChange(event, value) {
+    this.setState({quality: value});
+  }
+
+  encode(image, quality, success) {
+  	window.WebP().then(function(Module) {
       const api = {
         version: Module.cwrap('version', 'number', []),
         create_buffer: Module.cwrap('create_buffer', 'number', ['number', 'number']),
@@ -68,12 +110,12 @@ class WebPConvertForm extends React.Component {
       const resultPointer = api.get_result_pointer();
       const resultSize = api.get_result_size();
       const resultView = new Uint8Array(Module.HEAP8.buffer, resultPointer, resultSize);
-      const result = new Uint8Array(resultView);
+      const converted = new Uint8Array(resultView);
       
       api.free_result(resultPointer);
       api.destroy_buffer(p);
 
-      callback(result);
+      success(converted);
 	});
   }
 
@@ -128,7 +170,8 @@ class WebPConvertForm extends React.Component {
             Quality (%)
           </Typography>
           <Slider
-            defaultValue={80}
+            onChange={this.handleQualityChange}
+            value={this.state.quality}
             getAriaValueText={this.valuetext}
             aria-labelledby="webp-encode-quality"
             step={1}
@@ -139,9 +182,11 @@ class WebPConvertForm extends React.Component {
         </Box>
         <Box {...marginProps}>
           <Button color="primary" variant="contained" disabled={this.state.inputImage===null} onClick={this.handleConvert}>
-            <p>Convert</p>
+            <p>{this.convertLabel}</p>
           </Button>
         </Box>
+        <canvas ref={(canvas) => this.canvas = canvas} className="hidden"/>
+        <img ref={(img) => this.convertedImg= img}/>
       </Container>
     );
   }
