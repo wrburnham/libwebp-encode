@@ -55,6 +55,10 @@ class WebPConvertForm extends React.Component {
   	  	  this.convertError();
   	  	} else {
   	  	  const target = this.convertedImg;
+  	  	  const revoke = target.src === undefined || target.src === null || target.src.trim() === '';
+  	  	  if (!revoke) {
+  	  	  	URL.revokeObjectURL(target.src);
+  	  	  }
   	  	  try {
             this.canvas.width = img.width;
             this.canvas.height = img.height;
@@ -65,11 +69,15 @@ class WebPConvertForm extends React.Component {
             image, 
             this.state.quality, 
       	    converted => {
-              console.log(converted);
-              console.log(this.state.quality);
-              const convertedUrl = URL.createObjectURL(new Blob([converted], {type: "image/webp"}));
-              target.src = convertedUrl;
-              this.resetState();
+      	      try {
+      	        const convertedUrl = URL.createObjectURL(new Blob([converted], {type: "image/webp"}));
+                target.src = convertedUrl;
+                const message = "Converted " + this.state.inputImage.name + " with " + this.state.quality + "% quality.";
+                toast.info(message);
+                this.resetState();
+              } catch (err) {
+              	toast.warn("The converted image may not have been rendered correctly.");
+              }
       	    });
           } catch (err) {
           	this.convertError();
@@ -186,7 +194,7 @@ class WebPConvertForm extends React.Component {
           </Button>
         </Box>
         <canvas ref={(canvas) => this.canvas = canvas} className="hidden"/>
-        <img ref={(img) => this.convertedImg= img}/>
+        <img ref={(img) => this.convertedImg = img}/>
       </Container>
     );
   }
