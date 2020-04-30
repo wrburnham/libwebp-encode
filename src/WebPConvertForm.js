@@ -15,7 +15,8 @@ class WebPConvertForm extends React.Component {
     this.defaultQuality = 80;
     this.state = {
       inputImage: null,
-      quality: this.defaultQuality
+      quality: this.defaultQuality,
+      processing: false
     };
     this.convertLabel = "Convert";
     this.handleConvert = this.handleConvert.bind(this);
@@ -41,11 +42,14 @@ class WebPConvertForm extends React.Component {
   }
 
   resetState() {
-  	this.setState({inputImage: null});
-    this.setState({quality: this.defaultQuality});
+  	this.setState({
+  	  inputImage: null,
+  	  quality: this.defaultQuality,
+  	  processing: false});
   }
 
   handleConvert() {
+  	this.setState({processing: true});
   	const url = URL.createObjectURL(this.state.inputImage);
   	const img = new Image();
   	try {
@@ -77,6 +81,7 @@ class WebPConvertForm extends React.Component {
                 this.resetState();
               } catch (err) {
               	toast.warn("The converted image may not have been rendered correctly.");
+              	this.resetState();
               }
       	    });
           } catch (err) {
@@ -158,7 +163,7 @@ class WebPConvertForm extends React.Component {
     return (
       <Container>
         <h1>WebP Encoder</h1>
-        <p>Convert an image to Google's WebP format in your web browser. No server side processing is done (all data stays on the client).</p>
+        <p>Convert an image to Google's WebP format in your web browser. No server side processing is done (all data stays on the client). The converted webp image will be shown in the browser window.</p>
         <Box {...marginProps}>
           <Dropzone onDrop={files => this.handleAccepted(files)}>
             {({getRootProps, getInputProps}) => (
@@ -189,7 +194,7 @@ class WebPConvertForm extends React.Component {
           />
         </Box>
         <Box {...marginProps}>
-          <Button color="primary" variant="contained" disabled={this.state.inputImage===null} onClick={this.handleConvert}>
+          <Button color="primary" variant="contained" disabled={this.state.inputImage===null || this.state.processing === true} onClick={this.handleConvert}>
             <p>{this.convertLabel}</p>
           </Button>
         </Box>
