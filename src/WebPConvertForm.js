@@ -193,8 +193,10 @@ class WebPConvertForm extends React.Component {
             <p>{this.convertLabel}</p>
           </Button>
         </Box>
+        <Box {...marginProps}>
+          <img ref={(img) => this.convertedImg = img} className="preview"/>
+        </Box>
         <canvas ref={(canvas) => this.canvas = canvas} className="hidden"/>
-        <img ref={(img) => this.convertedImg = img}/>
       </Container>
     );
   }

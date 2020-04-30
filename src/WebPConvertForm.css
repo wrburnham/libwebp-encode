@@ -1,3 +1,6 @@
 .hidden {
 	display: none;
 }
+.preview {
+	width: 100%;
+}
